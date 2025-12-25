@@ -3,45 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fleet Intelligence: Multi-Machine AI Monitor</title>
+    <title>Fleet Intelligence Pro: Dynamic AI Monitoring</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <!-- 
-    Palette: Industrial Steel & Safety Orange
-    Focus: Multi-asset management and Reliability definitions
+    Palette: Professional Deep Blue & Warning Accents
+    Logic: This dashboard aggregates status from live MQTT nodes to update a global Risk Profile.
     -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: #F1F5F9; }
         .machine-card { background: #1E293B; border-radius: 1.25rem; border: 1px solid #334155; transition: all 0.3s ease; }
-        .machine-card:hover { border-color: #38BDF8; transform: translateY(-3px); }
         .reliability-bar { height: 8px; border-radius: 4px; background: #334155; overflow: hidden; }
-        .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .status-pulse { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .pulse-green { background: #10B981; box-shadow: 0 0 10px #10B981; animation: pulse 2s infinite; }
+        .pulse-amber { background: #F59E0B; box-shadow: 0 0 10px #F59E0B; animation: pulse 2s infinite; }
+        .pulse-red { background: #EF4444; box-shadow: 0 0 10px #EF4444; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
     </style>
 </head>
 <body class="antialiased pb-20">
 
-    <!-- Header -->
-    <header class="bg-slate-900 border-b border-slate-800 py-8 px-6 sticky top-0 z-50 backdrop-blur-md bg-opacity-80">
+    <!-- Header with Aggregate Health -->
+    <header class="bg-slate-900 border-b border-slate-800 py-8 px-6 sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
         <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
-                <h1 class="text-2xl font-extrabold tracking-tight">FLEET <span class="text-sky-400">INTELLIGENCE</span></h1>
-                <p class="text-xs text-slate-500 uppercase font-black tracking-widest mt-1">Multi-Asset Predictive Analytics</p>
+                <h1 class="text-2xl font-black tracking-tighter">FLEET <span class="text-sky-400">GUARD</span></h1>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Predictive Asset Management</p>
             </div>
             
-            <div class="flex items-center gap-8">
+            <div class="flex items-center gap-12">
                 <div class="text-right">
-                    <p class="text-[10px] text-slate-500 font-bold uppercase">Aggregate Fleet Health</p>
-                    <div class="flex items-center gap-3">
+                    <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Fleet Reliability</p>
+                    <div class="flex items-center gap-4">
                         <span class="text-3xl font-black text-sky-400" id="fleet-avg">--%</span>
-                        <div class="w-32 reliability-bar">
+                        <div class="w-40 reliability-bar">
                             <div id="fleet-bar" class="h-full bg-sky-400 transition-all duration-1000" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
-                <div id="mqtt-status" class="px-3 py-1 bg-slate-800 rounded text-[10px] font-bold text-slate-500 border border-slate-700">
-                    CONNECTING...
+                <div id="mqtt-status" class="px-4 py-2 bg-slate-950 rounded-full text-[10px] font-black text-slate-500 border border-slate-800">
+                    MQTT: CONNECTING...
                 </div>
             </div>
         </div>
@@ -49,30 +52,33 @@
 
     <main class="max-w-7xl mx-auto px-6 py-12 space-y-12">
 
-        <!-- Reliability Definition for the Owner -->
+        <!-- Top Section: Executive Overview -->
         <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 space-y-4">
-                <h2 class="text-2xl font-bold">What is "Reliability Score"?</h2>
-                <p class="text-slate-400 leading-relaxed text-sm">
-                    This score measures how closely the machine is following its <strong>"Golden Baseline"</strong> (the signature of the machine when it was new/healthy). 
+            <div class="lg:col-span-2 space-y-6">
+                <h2 class="text-3xl font-bold">Risk Management Summary</h2>
+                <p class="text-slate-400 leading-relaxed">
+                    This AI system continuously compares your fleet against a <strong>Golden Baseline</strong>. 
+                    The "Fleet Mix" chart below calculates the total risk distribution across your factory floor in real-time.
                 </p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                    <div class="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                        <p class="text-emerald-400 font-bold text-xs uppercase">85 - 100%</p>
-                        <p class="text-[10px] text-slate-300 mt-1"><strong>OPTIMAL:</strong> Machine is running as designed. No action needed.</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="p-5 bg-slate-800 rounded-2xl border-l-4 border-emerald-500">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase">Healthy Assets</p>
+                        <p id="count-healthy" class="text-2xl font-black mt-1">--</p>
                     </div>
-                    <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                        <p class="text-amber-400 font-bold text-xs uppercase">50 - 85%</p>
-                        <p class="text-[10px] text-slate-300 mt-1"><strong>DEGRADED:</strong> Early signs of wear. Schedule inspection within 14 days.</p>
+                    <div class="p-5 bg-slate-800 rounded-2xl border-l-4 border-amber-500">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase">At Risk</p>
+                        <p id="count-degraded" class="text-2xl font-black mt-1">--</p>
                     </div>
-                    <div class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                        <p class="text-rose-400 font-bold text-xs uppercase">Below 50%</p>
-                        <p class="text-[10px] text-slate-300 mt-1"><strong>CRITICAL:</strong> Structural damage occurring. Stop machine to prevent total loss.</p>
+                    <div class="p-5 bg-slate-800 rounded-2xl border-l-4 border-rose-500">
+                        <p class="text-[10px] font-bold text-slate-500 uppercase">Critical Failure</p>
+                        <p id="count-critical" class="text-2xl font-black mt-1">--</p>
                     </div>
                 </div>
             </div>
-            <div class="bg-slate-800/50 p-6 rounded-3xl border border-slate-700 flex flex-col justify-center">
-                <h3 class="text-sm font-bold text-slate-400 mb-4 uppercase text-center">Active Fleet Mix</h3>
+
+            <!-- DYNAMIC PIE CHART -->
+            <div class="bg-slate-800/50 p-8 rounded-3xl border border-slate-700 flex flex-col justify-center">
+                <h3 class="text-xs font-bold text-slate-500 mb-6 uppercase text-center tracking-widest">Live Fleet Risk Profile</h3>
                 <div class="h-48">
                     <canvas id="fleetMixChart"></canvas>
                 </div>
@@ -80,149 +86,171 @@
         </section>
 
         <!-- Machine Grid -->
-        <section>
-            <div class="flex justify-between items-end mb-8">
-                <h2 class="text-2xl font-bold">Individual Asset Monitoring</h2>
-                <p class="text-xs text-slate-500 font-bold uppercase">Real-Time Updates via MQTTS</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="machine-grid">
-                <!-- Machine 01 (Connected to Wokwi) -->
-                <div class="machine-card p-6 space-y-6">
+        <section class="space-y-8">
+            <h2 class="text-2xl font-bold">Asset Inventory</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- Main Pump #01 (Connected to Live MQTT) -->
+                <div class="machine-card p-8 space-y-6" id="m1-card">
                     <div class="flex justify-between items-start">
                         <div>
-                            <h3 class="font-bold text-lg">Main Pump #01</h3>
-                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">ESP32-S3 Node</p>
+                            <h3 class="font-bold text-xl">Main Pump #01</h3>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">ESP32 Elite Node</p>
                         </div>
-                        <span class="status-indicator bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></span>
+                        <span id="m1-indicator" class="status-pulse pulse-green"></span>
                     </div>
 
                     <div class="space-y-2">
                         <div class="flex justify-between items-end">
-                            <p class="text-xs text-slate-400 font-bold uppercase">Reliability</p>
-                            <p class="text-2xl font-black text-sky-400" id="m1-score">--%</p>
+                            <p class="text-xs text-slate-400 font-bold">Reliability Score</p>
+                            <p id="m1-score" class="text-3xl font-black text-sky-400">--%</p>
                         </div>
                         <div class="reliability-bar">
                             <div id="m1-bar" class="h-full bg-sky-400 transition-all duration-700" style="width: 0%"></div>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-700">
+                    <div class="grid grid-cols-2 gap-6 pt-6 border-t border-slate-700">
                         <div>
-                            <p class="text-[10px] text-slate-500 uppercase font-bold">Vibration (g)</p>
-                            <p class="text-sm font-bold" id="m1-rms">0.00</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase">RMS Volume</p>
+                            <p id="m1-rms" class="text-sm font-black mt-1">0.000g</p>
                         </div>
                         <div>
-                            <p class="text-[10px] text-slate-500 uppercase font-bold">Impact Index</p>
-                            <p class="text-sm font-bold" id="m1-kur">0.0</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase">Impact Index</p>
+                            <p id="m1-kur" class="text-sm font-black mt-1 text-cyan-400">0.0</p>
                         </div>
                     </div>
 
-                    <div id="m1-alert" class="p-3 bg-slate-900 rounded-lg text-[10px] text-slate-400 italic">
-                        "Waiting for data packet..."
+                    <div id="m1-status-msg" class="p-4 bg-slate-900 rounded-xl text-xs text-slate-400 border border-slate-700">
+                        Awaiting data stream...
                     </div>
                 </div>
 
-                <!-- Placeholder for Machine 02 -->
-                <div class="machine-card p-6 space-y-6 opacity-50 grayscale">
+                <!-- Mock Machine 02 (For Demo Symmetry) -->
+                <div class="machine-card p-8 space-y-6 opacity-40">
                     <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="font-bold text-lg">Ventilation Fan #02</h3>
-                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">Offline</p>
-                        </div>
-                        <span class="status-indicator bg-slate-500"></span>
+                        <h3 class="font-bold text-xl">Fan Unit #02</h3>
+                        <span class="status-pulse bg-slate-600"></span>
                     </div>
-                    <div class="text-center py-10">
-                        <p class="text-xs text-slate-500">No Node Detected</p>
-                    </div>
+                    <div class="py-12 text-center text-xs text-slate-500">OFFLINE / NO NODE</div>
                 </div>
 
-                <!-- Placeholder for Machine 03 -->
-                <div class="machine-card p-6 space-y-6 opacity-50 grayscale">
+                <!-- Mock Machine 03 (For Demo Symmetry) -->
+                <div class="machine-card p-8 space-y-6 opacity-40">
                     <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="font-bold text-lg">Compressor #01</h3>
-                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">Offline</p>
-                        </div>
-                        <span class="status-indicator bg-slate-500"></span>
+                        <h3 class="font-bold text-xl">Compressor #01</h3>
+                        <span class="status-pulse bg-slate-600"></span>
                     </div>
-                    <div class="text-center py-10">
-                        <p class="text-xs text-slate-500">No Node Detected</p>
-                    </div>
+                    <div class="py-12 text-center text-xs text-slate-500">OFFLINE / NO NODE</div>
                 </div>
+
             </div>
         </section>
 
     </main>
 
     <script>
-        // --- MQTT Connection ---
+        // --- MQTT Config ---
         const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-        const topic = 'industrial/nodes/elite_01'; // Matches Wokwi
+        const topic = 'industrial/nodes/elite_01';
 
         client.on('connect', () => {
-            document.getElementById('mqtt-status').innerText = 'BRIDGE: ONLINE';
-            document.getElementById('mqtt-status').classList.replace('text-slate-500', 'text-sky-400');
+            document.getElementById('mqtt-status').innerText = 'MQTT: LIVE (EMQX BRIDGE)';
+            document.getElementById('mqtt-status').className = 'px-4 py-2 bg-emerald-500/10 rounded-full text-[10px] font-black text-emerald-400 border border-emerald-500/30';
             client.subscribe(topic);
         });
 
-        // --- Fleet Chart ---
+        // --- Global Fleet Data State ---
+        // For this demo, we assume 1 live node and 2 dead nodes.
+        // We will only calculate the mix based on the LIVE nodes.
+        let fleetState = {
+            healthy: 0,
+            degraded: 0,
+            critical: 0
+        };
+
+        // --- Initial Chart Setup ---
         const ctxFleet = document.getElementById('fleetMixChart').getContext('2d');
         const fleetChart = new Chart(ctxFleet, {
             type: 'doughnut',
             data: {
                 labels: ['Healthy', 'Degraded', 'Critical'],
                 datasets: [{
-                    data: [1, 0, 0], // Starting state
-                    backgroundColor: ['#10B981', '#F59E0B', '#F43F5E'],
+                    data: [1, 0, 0], // Initial dummy state
+                    backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
                     borderWidth: 0,
                 }]
             },
             options: {
                 maintainAspectRatio: false,
                 cutout: '80%',
-                plugins: { legend: { position: 'bottom', labels: { color: '#94A3B8', font: { size: 10 } } } }
+                plugins: { legend: { display: false } }
             }
         });
 
-        // --- Data Logic ---
-        client.on('message', (t, message) => {
+        // --- Core Message Handler ---
+        client.on('message', (t, msg) => {
             try {
-                const data = JSON.parse(message.toString());
+                const data = JSON.parse(msg.toString());
                 
-                // 1. Calculate Reliability Score for Machine 1
-                // We use Kurtosis deviation. Base is 3.0. If Kurtosis > 15, reliability is low.
-                let kurtosisFactor = Math.max(0, (data.kurtosis - 3) * 6);
-                let reliability = Math.max(0, 100 - kurtosisFactor);
+                // 1. Calculate Reliability for Node 1
+                // Normal Kurtosis is ~3. Critical is > 15.
+                let reliability = Math.max(0, 100 - ((data.kurtosis - 3) * 6));
                 
-                // 2. Update Machine 1 UI
+                // 2. Determine State Category
+                let state = "healthy";
+                if (reliability < 50) state = "critical";
+                else if (reliability < 85) state = "degraded";
+
+                // 3. Update the Fleet Mix (Logic)
+                // In a real app, you'd loop through all active nodes. 
+                // Here, we update based on our 1 active node.
+                fleetState.healthy = (state === "healthy") ? 1 : 0;
+                fleetState.degraded = (state === "degraded") ? 1 : 0;
+                fleetState.critical = (state === "critical") ? 1 : 0;
+
+                // 4. Update the Doughnut Chart
+                fleetChart.data.datasets[0].data = [fleetState.healthy, fleetState.degraded, fleetState.critical];
+                fleetChart.update();
+
+                // 5. Update Global Counters
+                document.getElementById('count-healthy').innerText = fleetState.healthy;
+                document.getElementById('count-degraded').innerText = fleetState.degraded;
+                document.getElementById('count-critical').innerText = fleetState.critical;
+
+                // 6. Update Machine 01 UI
                 document.getElementById('m1-score').innerText = Math.round(reliability) + '%';
                 document.getElementById('m1-bar').style.width = reliability + '%';
-                document.getElementById('m1-rms').innerText = data.rms.toFixed(3);
+                document.getElementById('m1-rms').innerText = data.rms.toFixed(3) + ' g';
                 document.getElementById('m1-kur').innerText = data.kurtosis.toFixed(1);
-
-                // 3. Dynamic Alerts
-                const alertBox = document.getElementById('m1-alert');
-                if (reliability > 85) {
-                    alertBox.innerText = "Machine performing at optimal parameters.";
-                    alertBox.className = "p-3 bg-emerald-500/10 rounded-lg text-[10px] text-emerald-400";
-                    document.getElementById('m1-bar').className = "h-full bg-emerald-500 transition-all duration-700";
-                } else if (reliability > 50) {
-                    alertBox.innerText = "Early wear detected. Schedule vibration audit.";
-                    alertBox.className = "p-3 bg-amber-500/10 rounded-lg text-[10px] text-amber-400";
-                    document.getElementById('m1-bar').className = "h-full bg-amber-500 transition-all duration-700";
-                } else {
-                    alertBox.innerText = "CRITICAL: Severe bearing impact detected. Risk of fire/seizure.";
-                    alertBox.className = "p-3 bg-rose-500/10 rounded-lg text-[10px] text-rose-400 animate-pulse font-bold";
-                    document.getElementById('m1-bar').className = "h-full bg-rose-500 transition-all duration-700";
-                }
-
-                // 4. Update Global Fleet Health (Assuming 1 live node for this demo)
                 document.getElementById('fleet-avg').innerText = Math.round(reliability) + '%';
                 document.getElementById('fleet-bar').style.width = reliability + '%';
 
-            } catch (e) {
-                console.error("Data error", e);
+                // 7. Update Pulse Color & Status Message
+                const indicator = document.getElementById('m1-indicator');
+                const statusMsg = document.getElementById('m1-status-msg');
+                const bar = document.getElementById('m1-bar');
+
+                if (state === "healthy") {
+                    indicator.className = "status-pulse pulse-green";
+                    bar.className = "h-full bg-emerald-500 transition-all duration-700";
+                    statusMsg.innerText = "System operating within Golden Baseline parameters.";
+                    statusMsg.className = "p-4 bg-emerald-500/5 rounded-xl text-xs text-emerald-400 border border-emerald-500/20";
+                } else if (state === "degraded") {
+                    indicator.className = "status-pulse pulse-amber";
+                    bar.className = "h-full bg-amber-500 transition-all duration-700";
+                    statusMsg.innerText = "Early wear signature detected. Vibration audit required.";
+                    statusMsg.className = "p-4 bg-amber-500/5 rounded-xl text-xs text-amber-400 border border-amber-500/20";
+                } else {
+                    indicator.className = "status-pulse pulse-red";
+                    bar.className = "h-full bg-rose-500 transition-all duration-700";
+                    statusMsg.innerText = "CRITICAL: High-frequency impact detected. Immediate inspection!";
+                    statusMsg.className = "p-4 bg-rose-500/5 rounded-xl text-xs text-rose-400 border border-rose-500/20 font-bold";
+                }
+
+            } catch (err) {
+                console.error("JSON Error", err);
             }
         });
 
